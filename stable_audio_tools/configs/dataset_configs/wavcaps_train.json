@@ -1,0 +1,12 @@
+{
+    "dataset_type": "pre_encoded",
+    "datasets": [
+        {
+            "id": "wavcaps",
+            "path": "/path/to/preencoded/wavcaps/sao_vae"
+        }
+    ],
+    "random_crop": false,
+    "controls": ["rms_energy", "pesto_pitch", "spectral_centroid"],
+    "smooth_controls": true
+}

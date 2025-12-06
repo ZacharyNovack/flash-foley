@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "debugpy",
+      "request": "launch",
+      "name": "Debug stable-audio-tools train.py",
+      "program": "${workspaceFolder}/train.py",
+      "args": [
+        "--dataset-config",
+        "${workspaceFolder}/stable_audio_tools/configs/dataset_configs/local_freesound.json",
+        "--model-config",
+        "${workspaceFolder}/stable_audio_tools/configs/model_configs/autoencoders/stream_vae_graft.json",
+        "--name",
+        "causal_saovae",
+        "--batch-size",
+        "1",
+        "--precision",
+        "bf16"
+      ],
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "3"
+      },
+      "console": "integratedTerminal"
+    }
+  ]
+}

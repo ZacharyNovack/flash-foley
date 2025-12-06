@@ -1,0 +1,12 @@
+{
+    "dataset_type": "audio_dir",
+    "datasets": [
+        {
+            "id": "wavcaps",
+            "path": "/path/to/WavCaps/",
+            "custom_metadata_module": "/path/to/flash-foley/stable_audio_tools/configs/dataset_configs/custom_metadata/custom_md_wavcaps.py"
+        }
+    ],
+    "random_crop": false,
+    "controls": ["rms_energy", "pesto_pitch", "spectral_centroid"]
+}

@@ -1,0 +1,193 @@
+{
+    "model_type": "diffusion_cond",
+    "sample_size": 524288,
+    "sample_rate": 44100,
+    "audio_channels": 2,
+    "model": {
+        "pretransform": {
+            "type": "autoencoder",
+            "iterate_batch": false,
+            "model_half": true,
+            "config": {
+                "encoder": {
+                    "type": "oobleck",
+                    "requires_grad": false,
+                    "config": {
+                        "in_channels": 2,
+                        "channels": 128,
+                        "c_mults": [1, 2, 4, 8, 16],
+                        "strides": [2, 4, 4, 8, 8],
+                        "latent_dim": 128,
+                        "use_snake": true
+                    }
+                },
+                "decoder": {
+                    "type": "oobleck",
+                    "config": {
+                        "out_channels": 2,
+                        "channels": 128,
+                        "c_mults": [1, 2, 4, 8, 16],
+                        "strides": [2, 4, 4, 8, 8],
+                        "latent_dim": 64,
+                        "use_snake": true,
+                        "final_tanh": false
+                    }
+                },
+                "bottleneck": {
+                    "type": "vae"
+                },
+                "latent_dim": 64,
+                "downsampling_ratio": 2048,
+                "io_channels": 2
+            }
+        },
+        "conditioning": {
+            "configs": [
+                {
+                    "id": "prompt",
+                    "type": "t5",
+                    "config": {
+                        "t5_model_name": "t5-base",
+                        "max_length": 64
+                    }
+                },
+                {
+                    "id": "seconds_total",
+                    "type": "number",
+                    "config": {
+                        "min_val": 0,
+                        "max_val": 256
+                    }
+                },
+                {
+                    "id": "rms_energy",
+                    "type": "extracted",
+                    "config": {
+                        "min_val": -100.0,
+                        "max_val": 80.0
+                    }
+                },
+                {
+                    "id": "pesto_pitch",
+                    "type": "extracted",
+                    "config": {}
+                },
+                {
+                    "id": "spectral_centroid",
+                    "type": "extracted",
+                    "config": {}
+                }
+            ],
+            "cond_dim": 768
+        },
+        "diffusion": {
+            "cross_attention_cond_ids": ["prompt", "seconds_total"],
+            "global_cond_ids": ["seconds_total"],
+            "input_add_ids": ["rms_energy", "pesto_pitch", "spectral_centroid", "inpaint_mask", "inpaint_masked_input"],
+            "diffusion_objective": "rf_denoiser",
+            "distribution_shift_options": {
+                "min_length": 256,
+                "max_length": 4096
+            },
+            "type": "dit",
+            "config": {
+                "io_channels": 64,
+                "embed_dim": 1024,
+                "depth": 16,
+                "num_heads": 8,
+                "cond_token_dim": 768,
+                "global_cond_dim": 768,
+                "input_add_dims": {
+                    "rms_energy": 1,
+                    "pesto_pitch": 384,
+                    "spectral_centroid": 1,
+                    "inpaint_mask": 1,
+                    "inpaint_masked_input": 64
+                },
+                "transformer_type": "continuous_transformer",
+                "attn_kwargs": {
+                    "qk_norm": "ln"
+                }
+            }
+        },
+        "io_channels": 64
+    },
+    "training": {
+        "use_ema": false,
+        "log_loss_info": false,
+        "pre_encoded": true,
+        "timestep_sampler": "trunc_logit_normal",
+        "clip_grad_norm": 1.0,
+        "cfg_dropout_prob": 0.0,
+        "inpainting": {
+            "mask_kwargs": {
+                "max_mask_segments": 1,
+                "mask_type_probabilities": [0, 0.5, 0.5]
+            }
+        },
+        "arc": {
+            "ode_warmup": {
+                "warmup_steps": 0,
+                "refresh_rate": 10,
+                "sampling_steps": 25,
+                "cfg": 4
+            },
+            "noise_dist": {
+                "generator": "logsnr_uniform",
+                "discriminator": "logit_normal"
+            },
+            "use_model_as_teacher": true,
+            "teacher_model_ckpt": "/path/to/teacher_model.safetensors",
+            "use_model_as_discriminator": true,
+            "discriminator_base_ckpt": "/path/to/discriminator_base.safetensors",
+            "discriminator": {
+                "type": "conv",
+                "dit_hidden_layer": 8,
+                "weights": {
+                    "generator": 1.0,
+                    "discriminator": 1.0
+                },
+                "loss_type": "relativistic",
+                "config": {
+                    "loss_type": "relativistic"
+                },
+                "contrastive": true,
+                "include_grad_penalties": false
+            }
+        },
+        "optimizer_configs": {
+            "diffusion": {
+                "optimizer": {
+                    "type": "AdamW",
+                    "config": {
+                        "lr": 1e-6,
+                        "betas": [0.9, 0.95],
+                        "eps": 1e-8,
+                        "weight_decay": 0.01,
+                        "foreach": true
+                    }
+                }
+            },
+            "discriminator": {
+                "optimizer": {
+                    "type": "AdamW",
+                    "config": {
+                        "lr": 1e-6,
+                        "betas": [0.9, 0.95],
+                        "eps": 1e-8,
+                        "weight_decay": 0.01,
+                        "foreach": true
+                    }
+                }
+            }
+        },
+        "demo": {
+            "demo_every": 2000,
+            "demo_steps": 8,
+            "num_demos": 8,
+            "demo_cond_from_batch": true,
+            "demo_cond": [],
+            "demo_cfg_scales": [1]
+        }
+    }
+}
